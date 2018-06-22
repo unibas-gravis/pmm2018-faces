@@ -1,4 +1,4 @@
-package summerschool.faceproject.debugging
+package debugging
 
 /*
  * Copyright University of Basel, Graphics and Vision Research Group

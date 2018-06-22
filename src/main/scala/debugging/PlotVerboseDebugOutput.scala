@@ -1,5 +1,3 @@
-package summerschool.faceproject.debugging
-
 package debugging
 
 import java.io.File

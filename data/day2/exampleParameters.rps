@@ -1,0 +1,51 @@
+{
+  "momo": {
+    "shape": [-2.186559957382326, 2.5804751493454225, 0.2647747955270615, 0.573153002883969, -0.06609010679942012],
+    "color": [0.17895712877496517, 0.12831693074777933, 0.7985302453041595, -0.1090963200466912, 1.4254869030230095],
+    "expression": [],
+    "modelURI": "file:/home/forand00/sgravis/projects/summerschool/tmp"
+  },
+  "imageSize": {
+    "height": 512,
+    "width": 512
+  },
+  "colorTransform": {
+    "gain": [1.0, 1.0, 1.0],
+    "colorContrast": 1.0,
+    "offset": [0.0, 0.0, 0.0]
+  },
+  "camera": {
+    "principalPoint": [0.0, 0.0],
+    "sensorSize": [2.0, 2.0],
+    "far": 100000.0,
+    "orthographic": false,
+    "near": 10.0,
+    "focalLength": 7.5
+  },
+  "directionalLight": {
+    "direction": [0.0, 0.0, 1.0],
+    "diffuse": [0.0, 0.0, 0.0],
+    "specular": [0.0, 0.0, 0.0],
+    "@type": "DirectionalLight",
+    "ambient": [0.0, 0.0, 0.0],
+    "shininess": 10.0
+  },
+  "version": "V4.0",
+  "environmentMap": {
+    "coefficients": [[0.5641895213369511, 0.5641895213369511, 0.5641895213369511], [0.44361822501566706, 0.21223293911375554, 0.3938864131843581], [0.2803904437860407, 0.13414256815535486, 0.2489572789534369], [0.5010367270556605, 0.23970272452896607, 0.44486801525481634]],
+    "@type": "SphericalHarmonicsLight"
+  },
+  "pose": {
+    "scaling": 1.0,
+    "roll": -0.1379354963894533,
+    "pitch": 0.11769680961947548,
+    "yaw": 0.24204441946105845,
+    "translation": [0.0, 0.0, -1000.0]
+  },
+  "view": {
+    "translation": [0.0, 0.0, 0.0],
+    "roll": 0.0,
+    "yaw": 0.0,
+    "pitch": 0.0
+  }
+}

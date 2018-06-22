@@ -1,0 +1,188 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="tufte.css" type="text/css" />
+</head>
+<body>
+<h1 id="the-challenge">The Challenge</h1>
+<p>Now we have seen most building block which you need to start with the final challenge. The challenge is the 3d reconstruction of a real world face image. The data you get is only a single image of a face. In the following sections we provide you some more hints about what you can use to adapt the model to the image. Then it is up to you to design a good compilation of the building blocks to solve the task.</p>
+<h2 id="the-goal">The Goal</h2>
+<p>The goal is to calculate a 3d reconstruction from a single 2d image. Two images are in the folder <code>challenge</code> from the project repository. The <em>indoor</em> image is in a more controlled setting than the <em>outdoor</em> image. The reconstruction of the second image is harder due to the more complex illumination, pose and the cluttered background. So we suggest to start with the easier image.</p>
+<h2 id="minimal-starting-point">Minimal starting point</h2>
+<p>We first introduce some parts that are essential to get to a first running application before in the next section we introduce more advanced topics.</p>
+<h3 id="landmark-clicker">Landmark Clicker</h3>
+<p>You can use the landmark clicker (<a href="https://bitbucket.org/pmmsummerschool/summerschool17/downloads/landmarks-clicker.jar">.jar-file</a>) to annotate landmarks in the image. You can load your own list of landmarks by providing a valid TLMS-2d landmark file or simply use the predefined ones.</p>
+<p>You then can load a *.tlms file using:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> landmarks = TLMSLandmarksIO.<span class="fu">read2D</span>(<span class="kw">new</span> File(<span class="st">&quot;path/to/file.tlms&quot;</span>)).<span class="fu">get</span></code></pre></div>
+<h3 id="tackle-the-image-color">Tackle the image color</h3>
+<p>To adapt the model to the image more accurately you need to use the image colors. As for the computer graphics we need also illumination, you need to change this part of the render parameters too. You can use the following classes from the framework to handle colors:</p>
+<ul>
+<li><p><strong>ColorPorposal</strong> to change the albedo of the model</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> colorProposal = <span class="fu">GaussianMoMoColorProposal</span>(<span class="fl">0.1</span>)</code></pre></div>
+<p>Note that you have to convert the proposals to <code>RenderParameter</code> proposal using the function <code>toParameterProposal</code> in order to combine model proposals and pose proposals.</p></li>
+<li><p><strong>ColorPrior</strong> to evaluate the model prior of the albedo</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> texturePrior = <span class="fu">GaussianTexturePrior</span>(<span class="fl">0.0</span>,<span class="fl">1.0</span>)</code></pre></div></li>
+<li><p><strong>IndependantPixelEvaluator</strong> to evaluate the likelihood of an image</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> ipEval = <span class="fu">IndependentPixelEvaluator</span>(target,<span class="fu">IsotropicGaussianPixelEvaluator</span>(<span class="fl">0.1</span>),<span class="fu">ConstantPixelEvaluator</span>(<span class="fl">0.4</span>))</code></pre></div></li>
+<li><p><strong>ImageRendererEvaluator</strong> to evaluate the likelihood of a set of parameters. The evaluator uses a renderer to produce an image and evaluates then the likelihood with the passed evaluator.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> imageEval = <span class="fu">ImageRendererEvaluator</span>(renderer,ipEval)</code></pre></div></li>
+</ul>
+<p>To adapt the light there are two options. Either a update sampled from a Gaussian distribution can be used, or we can optimize the light parameters given the current state:</p>
+<ul>
+<li><p><strong>Random updates</strong> can be done using the <code>SHLightPerturbationProposal</code>:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">face</span>.<span class="fu">proposals</span>.<span class="fu">SphericalHarmonicsLightProposals</span>.<span class="fu">_</span>
+<span class="kw">val</span> illuminationProposal = <span class="fu">SHLightPerturbationProposal</span>(<span class="fl">0.05</span>,fixIntensity = <span class="kw">false</span>)</code></pre></div></li>
+<li><p><strong>Calculated updates</strong> can be done using the <code>SHLightSolverProposal</code>:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">face</span>.<span class="fu">proposals</span>.<span class="fu">ParameterProposals</span>.<span class="fu">implicits</span>.<span class="fu">_</span>
+<span class="kw">val</span> shlOptimizer = <span class="fu">SphericalHarmonicsOptimizer</span>(renderer,target)
+<span class="kw">val</span> samplingStrategy = (mesh: TriangleMesh3D) =&gt; MeshSurfaceSampling.<span class="fu">sampleUniformlyOnSurface</span>(<span class="dv">1000</span>)(mesh)
+<span class="kw">val</span> illuminationProposal = <span class="fu">SHLightSolverProposal</span>(shlOptimizer,samplingStrategy).<span class="fu">toParameterProposal</span></code></pre></div>
+<p>When you use the optimization proposal you have a deterministic proposal. This proposl has not a symmetric transition ratio. Strictly mathematical speaking the transition ratio is not defined. In practice this proposal helps a lot in the beginning of the adaptation process. To use it you have however to change your algorithm and use the <code>MetropolisHastings</code> class.</p></li>
+</ul>
+<p>With these informations you should be able to already start fitting the image. Try to come up with an initial working algorithm. This will help you to develop a feeling for the problem and to select which part you would like to improve on.</p>
+<p>We will sketch a lot of advanced topics you can address in the next section.</p>
+<h2 id="advanced-topics">Advanced topics</h2>
+<p>Here we present advanced topics which arise when working on the reconstruction problem. Note that you do not have to address all these topics and you will not have enough time to tackle them all during this summer-school.</p>
+<h3 id="miscellanous-points">Miscellanous points</h3>
+<ul>
+<li><p>All the mathematical guarantees that the underlying algorithm provides are only valid for very long sampling runs. Should we now invest a lot of time to design and tune the porposals and evaluators or should we simply run the algorithm long enough?</p></li>
+<li><p>While the algorithm is non-deterministic, the evaluator has to be deterministic. So providing twice the same render parameters to an evaluator has to return the same value.</p></li>
+</ul>
+<h3 id="proposals">Proposals</h3>
+<p>When designing proposals the important decisions are:</p>
+<ul>
+<li>Which parameters should be modified simultaneously and which not?</li>
+<li>How to choose the weights for the mixture of different blocks of parameters?</li>
+<li>Do we choose the same mixture for the complete run or should we even design completely different algorithms for different phases?</li>
+<li>Which scale to choose for each proposal?</li>
+<li>Is it beneficial to use multiple times the same proposal class with different standard deviation combined to a mixture?</li>
+<li>There are sometimes strong correlation between the parameters. As an example, applying a standard rotation to the head shifts the landmarks around. So in order to get a high landmark likelihood for a rotation update it is necessary to compensate for this shift.</li>
+</ul>
+<h3 id="faster-evaluators">Faster Evaluators</h3>
+<p>An important topic for more performance is caching. As we use a software renderer, the rendering takes more time compared to a hardware solution. We can overcome part of this problem using the <code>MoMoRenderer</code>'s caching mechanism. You can take advantage of it by simply calling <code>cached(n: Int)</code> where n is the size of the cache:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> cachedRenderer: MoMoRenderer = <span class="fu">MoMoRenderer</span>(model).<span class="fu">cached</span>(<span class="dv">10</span>)</code></pre></div>
+<p>Further you can also cache the value of evaluators using the <code>CachedDistributionEvaluator</code>. This makes sense for costly evaluations as e.g. the image evaluator which iterates over all pixels in the image. You can cache an evaluator like this:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">evaluators</span>.<span class="fu">CachedDistributionEvaluator</span>.<span class="fu">implicits</span>.<span class="fu">_</span>
+
+<span class="kw">val</span> cachedEvaluator = evaluator.<span class="fu">cached</span>(<span class="dv">10</span>)</code></pre></div>
+<h3 id="filtering">Filtering</h3>
+<p>Another possibility to speed up the algorithm is to use step-wise Bayesian inference. Step-wise bayesian inference is not only about gaining speed. It is also useful to integrate different sources of information, as for example the landmarks and the information contained in the image.</p>
+<p>In the software the bayesian inference or filtering is implemented using the <code>MetropolisFilterProposal</code>:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">proposals</span>.<span class="fu">MetropolisFilterProposal</span>
+
+<span class="kw">val</span> proposal: SymmetricProposalGenerator[RenderParameter] = ???
+<span class="kw">val</span> evaluator: DistributionEvaluator[RenderParameter] = ???
+<span class="kw">val</span> filteredProposals = <span class="fu">MetropolisFilterProposal</span>(proposal,evaluator)</code></pre></div>
+<h3 id="loggers">Loggers</h3>
+<p>Loggers provide a good starting point to get a deeper insight on a sampling run. Using an <code>AcceptRejectLogger</code>, you can print out the evolution of your sampling chain during the run in the following way:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> verboseLogger = <span class="kw">new</span> AcceptRejectLogger[RenderParameter] {
+  <span class="kw">var</span> index = <span class="dv">0</span>
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">accept</span>(current: RenderParameter,
+                      sample: RenderParameter,
+                      generator: ProposalGenerator[RenderParameter],
+                      evaluator: DistributionEvaluator[RenderParameter]): Unit = {
+    <span class="fu">printMessage</span>(<span class="st">&quot;A &quot;</span>,current,sample,generator,evaluator)
+  }
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">reject</span>(current: RenderParameter,
+                      sample: RenderParameter,
+                      generator: ProposalGenerator[RenderParameter],
+                      evaluator: DistributionEvaluator[RenderParameter]): Unit = {
+    <span class="fu">printMessage</span>(<span class="st">&quot;R &quot;</span>,current,sample,generator,evaluator)
+  }
+
+    <span class="kw">def</span> <span class="fu">printMessage</span>(prefix: String,
+                     current: RenderParameter,
+                     sample: RenderParameter,
+                     generator: ProposalGenerator[RenderParameter],
+                     evaluator: DistributionEvaluator[RenderParameter]): Unit ={
+      <span class="fu">println</span>(s<span class="st">&quot;$prefix ${&quot;</span>%06d<span class="st">&quot;.format(index)} : ${evaluator.logValue(sample)}&quot;</span>)
+    }
+  }</code></pre></div>
+<p>The <code>AcceptRejectLogger</code> has to be passed as second argument to the <code>iterator</code> function called on the sampling algorithm.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> algorithm = <span class="fu">Metropolis</span>(proposal,evaluator)
+<span class="kw">val</span> chainIterator = algorithm.<span class="fu">iterator</span>(init,verboseLogger)</code></pre></div>
+<p>As an additional <code>ChainStateLogger</code> you can use one that keeps track of the best sample given an evaluator.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> bestLogger = <span class="fu">BestSampleLogger</span>(evaluator)
+<span class="co">/* ...</span>
+<span class="co"> then you run your sampling application</span>
+<span class="co"> ... */</span>
+<span class="kw">val</span> bestSample = bestLogger.<span class="fu">currentBestSample</span>().<span class="fu">get</span></code></pre></div>
+<p>When you want to add multiple loggers you have to combine them. Multiple loggers can be combined using logger containers:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">loggers</span>.<span class="fu">ChainStateLoggerContainer</span>
+<span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">loggers</span>.<span class="fu">AcceptRejectLoggerContainer</span>
+
+<span class="kw">val</span> combinedCSLoggers = <span class="fu">ChainStateLoggerContainer</span>(Seq(csLoggerA, csLoggerB))
+<span class="kw">val</span> combinedARLoggers = <span class="fu">AcceptRejectLoggerContainer</span>(Seq(arLoggerA, arLoggerB))</code></pre></div>
+<h3 id="image-likelihood-models">Image Likelihood Models</h3>
+<p>When we define the image likelihood model we have to model explicitly the background (see <a href="http://gravis.dmi.unibas.ch/publications/2015/2015_Background_Modeling_Generative_Models.pdf">additional information</a>). The best choice depends on the target image.</p>
+<p>There are different image likelihood models you can choose from are:</p>
+<ul>
+<li><p>The <strong>IndependentPixelEvaluator</strong> uses a <code>PairEvaluator[RGB]</code> for the foreground and a <code>DistributionEvaluator[RGB]</code> for the background. The evaluation at a single pixel is then the sum of the two weighted by the alpha channel, indicating if it is fore- or background.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> independentEval: PairEvaluator[PixelImage[RGBA]] = <span class="fu">IndependentPixelEvaluator</span>(pixelEvaluator = fgEval, bgEvaluator = bgEval)</code></pre></div></li>
+<li><p>The <strong>TrimmedIndependentPixelEvaluator</strong> uses a <code>PairEvaluator[RGB]</code> for the foreground and a <code>DistributionEvaluator[RGB]</code> for the background. The evaluation over the image uses only the alpha fraction of the most likely foreground pixels. The alpha has to be chosen so that it corresponds to the fraction of the image size which is coverd by the face.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> trimmedEval: PairEvaluator[PixelImage[RGBA]] = <span class="fu">TrimmedIndependentPixelEvaluator</span>(pixelEvaluator = fgEval, bgEvaluator = bgEval, alpha = <span class="fl">0.0</span>)</code></pre></div></li>
+<li><p>The <strong>CollectiveLikelihoodEvaluator</strong> rates the average difference between the images for the rendered face area.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> cltEval: PairEvaluator[PixelImage[RGBA]] = <span class="fu">CollectiveLikelihoodEvaluator</span>(sigma = <span class="fl">0.072</span>, relativeVariance = <span class="fl">9.0</span>)</code></pre></div></li>
+</ul>
+<p>Possible choices for the foreground model are:</p>
+<ul>
+<li><p>The <strong>IsotropicGaussianPixelEvaluator</strong> rates a pair of colors. This is the most common choice.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> gaussFG: PairEvaluator[RGB] = <span class="fu">IsotropicGaussianPixelEvaluator</span>(<span class="fl">1.0</span>)</code></pre></div></li>
+<li><p>To use different distributions you can use the package <code>breeze.stats.distributions</code>. You can find a quick start guide by following this <a href="https://github.com/scalanlp/breeze/wiki/Quickstart#breezestatsdistributions">link</a>.</p></li>
+</ul>
+<p>Some options of the background model are:</p>
+<ul>
+<li><p>The <strong>ConstantPixelEvaluator</strong> assumes a constant likelihood for all background pixels.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> constBG: DistributionEvaluator[RGB] = ConstantPixelEvaluator[RGB](value = <span class="fl">0.01</span>)</code></pre></div></li>
+<li><p>The <strong>HistogramRGB</strong> estimates the color distribution from the target image and uses this empirical density as background model.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> histBG: DistributionEvaluator[RGB] = <span class="fu">HistogramRGB</span>(image = target.<span class="fu">values</span>.<span class="fu">toSeq</span>.<span class="fu">map</span>(_.<span class="fu">toRGB</span>),binsPerChannel = <span class="dv">10</span>)</code></pre></div></li>
+</ul>
+<p>In the end we want a sampling chain over <code>RenderParameter</code> and hence need a <code>DistributionEvaluator[RenderParameter]</code>. We can transform a <code>PairEvaluator[PixelImage[RGBA]]</code> to this type in two steps using the <code>ImageRendererEvaluator</code> and the <code>toDistributionEvaluator</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> distEval: DistributionEvaluator[PixelImage[RGBA]] = independentEval.<span class="fu">toDistributionEvaluator</span>(targetImage)
+<span class="kw">val</span> imageEval = <span class="fu">ImageRendererEvaluator</span>(renderer = renderer, imageEvaluator = distEval)</code></pre></div>
+</body>
+</html>

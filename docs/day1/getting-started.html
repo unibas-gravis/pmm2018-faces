@@ -1,0 +1,395 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="tufte.css" type="text/css" />
+</head>
+<body>
+<h1 id="introduction-to-scalismo-faces">Introduction to Scalismo-Faces</h1>
+<p>This is a short introduction to <a href="https://github.com/unibas-gravis/scalismo-faces">Scalismo-Faces</a>. First we will setup the environment and tooling. Then we will setup an initial project with skeletal source code. After obtaining the project we need a model to start exploring the library. Finally we will produce some images. Please note that it is essential that you are running a 64-bit system!</p>
+<h2 id="the-environment">The Environment</h2>
+<p>Our environment should run on the most common platforms (Linux, Windows and OSX). The minimal need is a <strong>64-bit JDK</strong>, preferably the version <strong>1.8.0_131</strong> or newer. Additionally we need the build tool <strong>sbt</strong>. This would be enough but for convenience we propose to install also a <strong>git</strong> client and the <strong>Intellij IDEA</strong>.</p>
+<h3 id="installation">Installation</h3>
+<p>Please install the following tools:</p>
+<table style="width:17%;">
+<colgroup>
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Tool</th>
+<th align="left">Download Link</th>
+<th align="left">Test command (will be executed in the next step of the tutorial)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">JDK 1.8.0_131 64-bit</td>
+<td align="left"><a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">all OS</a></td>
+<td align="left"><code>java -version</code></td>
+</tr>
+<tr class="even">
+<td align="left">git</td>
+<td align="left"><a href="https://git-scm.com/">all OS</a></td>
+<td align="left"><code>git --version</code></td>
+</tr>
+<tr class="odd">
+<td align="left">sbt</td>
+<td align="left"><a href="http://www.scala-sbt.org/">all OS</a></td>
+<td align="left"><code>sbt sbt-version</code></td>
+</tr>
+<tr class="even">
+<td align="left">Intellij IDEA</td>
+<td align="left"><a href="https://www.jetbrains.com/idea/">all OS</a></td>
+<td align="left"><em>(first start later in this tutorial)</em></td>
+</tr>
+</tbody>
+</table>
+<h2 id="first-steps-getting-the-project">First Steps: Getting the Project</h2>
+<p>In this step we provide you with a small &quot;Hello World&quot; example project. First, we download the project, then we run it from the command line and set up the IDE for the later usage.</p>
+<h3 id="java---do-i-have-the-right-version">JAVA - do i have the right version?</h3>
+<p>To test your java installation you can use the following command:</p>
+<pre><code>java -version</code></pre>
+<p>The output should look similar to:</p>
+<pre><code>java version &quot;1.8.0_131&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_131-b11)
+Java HotSpot(TM) 64-Bit Server VM (build 25.131-b11, mixed mode)</code></pre>
+<blockquote>
+<p><em>Note:</em> Make sure that your architecture is 64-Bit!</p>
+</blockquote>
+<h3 id="git---get-the-project">Git - Get the project</h3>
+<p>Next, to check your installation of git enter the following on a command line.:</p>
+<pre><code>git --version</code></pre>
+<blockquote>
+<p><em>Note:</em> On windows you should have a program called <strong>Git BASH</strong> after the installation of git.</p>
+</blockquote>
+<p>While the exact version does not matter, the output of the above command should be something as simple as:</p>
+<pre><code>git version 1.9.1</code></pre>
+<p>To get the project, we need to clone the repository using git. To download the project using git, change in the console to somewhere where you want the new project to be added. The cloning of the project creates a new folder in the directory where you execute the command. You can now get the project with the following command (replace <code>[USERNAME]</code>):</p>
+<pre><code>git clone git@github.com/unibas-gravis/pmm2018-faces.git</code></pre>
+<p>The IDE we use supports git. So we do not need to know more about the commandline usage of git. However, a good starting point to learn more about the commandline interface is the official <a href="https://git-scm.com/doc">documentation</a>.</p>
+<h3 id="sbt---building-from-the-command-line">Sbt - Building from the command line</h3>
+<p>To check whether sbt is installed correctly execute:</p>
+<pre><code>sbt sbt-version</code></pre>
+<p>Looking at the output you should see at the end of the output a line similar to:</p>
+<pre><code> ...
+ ...
+[info] 0.13.8</code></pre>
+<p>Change in the console to the directory <code>summerschool</code>. We will now run the project. This will trigger the project to be built by sbt. Note that the initial build will download some dependencies specific to the project. This may take a while. The command to run the project is:</p>
+<pre><code>sbt run</code></pre>
+<p>The output should indicate at the end, that the process finished with success:</p>
+<pre><code> ...
+ ...
+Summerschool 2017!
+[success] Total time: 0 s, completed May 10, 2017 5:23:30 PM</code></pre>
+<p>Sbt is integrated in the IDE, so we will not explain more about the usage. If you want more information go to the official <a href="http://www.scala-sbt.org/0.13/docs/index.html">documentation</a>.</p>
+<h3 id="intellij-idea">Intellij Idea</h3>
+<p>Now it is time to start the IDE. What we need to make sure is that you enable the scala plugin. Then we will import the project.</p>
+<p>When you start the IDE for the first time you can configure which parts are enabled and or downloaded. We recommend to go with the default settings as long as you have enough disk space. Go through the dialog step by step until you encounter the point <strong>Feautured Plugins</strong>. Then select to install the <strong>Scala Plugin</strong>.</p>
+<p>If you have already used the IDE but have not yet installed the Scala plugin, you can enable it through the menu <strong>File</strong>/<strong>Settings</strong>/<strong>Plugins</strong></p>
+<p>When the scala plugin is installed and you get displayed the welcome screen, choose <strong>Open ..</strong>. Then navigate to the folder containing the project and mark the <code>summerschool</code> folder before you hit <strong>OK</strong>.</p>
+<p>In the next dialog check that the <strong>Project SDK</strong> points to the location where you installed the Java SDK. If the checkbox <strong>auto import</strong> is shown, activate it. Then continue by clicking onto the <strong>OK</strong> button.</p>
+<p>When the dialog <strong>SBT Project Data To Import</strong> is shown you can deselect the <strong>summerschool-build</strong> entry and continue with <strong>OK</strong>.</p>
+<p>Now the IDE should change and display the project. When you start the IDE for the first time, there is a lot of processing that is done in the background. In the bottom right you can spot an indication for the ongoing work. Due to the workload it may take a while until the IDE reacts responsive.</p>
+<p>To see what is already present in the project hit <strong>[Alt+1]</strong> which should display the project structure tab to the left. If you do not see the project structure, then have a look at the top of the newly opened view. There should be a drop down list where you can select <strong>Project</strong>. You should then be able to navigate through the project folder to <code>summerschool/src/main/scala/</code> and double-click <strong>GeneratingImages</strong>. This will open the code of the application we have already executed before from the console using sbt.</p>
+<p>To execute the file from within the IDE right-click the source file and select <strong>Run 'GeneratingImages'</strong>. Alternatively you can use the shortcut which is marked after the menu entry. Depending on your setting it might be <strong>[Ctrl+Shift+F10]</strong>.</p>
+<p>To use git or sbt from within the IDE go to the menu <strong>View/Tool Windows</strong> and select what you want to do. If not yet enabled, you have to activate the git plugin over the menu <strong>File/Settings/Plugins</strong>.</p>
+<h2 id="scalismo-faces">Scalismo Faces</h2>
+<p>We begin the introduction to scalismo faces with a closer look at the file <code>GeneratingImages.scala</code> and develop it successively towards a full application that uses a model to generate images. In the end we will start to analyse images.</p>
+<h3 id="model-parameters-image">Model + Parameters = Image</h3>
+<p>The initial file we provided looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">object</span> GeneratingImages <span class="kw">extends</span> App {
+  <span class="fu">println</span>(<span class="st">&quot;Summerschool 2018!&quot;</span>)
+}</code></pre></div>
+<p>The first thing we need in order to proceed and generate images is a model. The <a href="http://faces.cs.unibas.ch/bfm/">Basel Face Model</a> <a href="http://faces.cs.unibas.ch/bfm/main.php?nav=1-2&amp;id=downloads">(download page)</a> is available freely for research purposes. Following the above link you will recieve an email with two download links. Make sure you take the one for the <code>*.h5</code> file and not the one for the <code>*.tgz</code> file. We suggest that you save the model in the <code>data</code> folder under your project and name it <code>model2009-bfm.h5</code>.</p>
+<p>Next we need to load the model. Scalismo-faces uses the same structure as scalismo for all IO tasks. There is the package <code>scalismo.faces.io</code> with different classes to write and load files of specific type. We load a model of the class <code>MoMo</code> which is a combined shape and color model. From the <code>io</code> package we use the class <code>MoMoIO</code> to load the model.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> java.<span class="fu">io</span>.<span class="fu">File</span>
+<span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">io</span>.<span class="fu">MoMoIO</span>
+
+scalismo.<span class="fu">initialize</span>()
+
+<span class="kw">val</span> modelFile = <span class="kw">new</span> File(<span class="st">&quot;data/model2009-bfm.h5&quot;</span>)
+<span class="kw">val</span> model = MoMoIO.<span class="fu">read</span>(modelFile).<span class="fu">get</span></code></pre></div>
+<p>Additionally to the model we need some parameters which specify the computer graphic process for generating the image. First we define the model coefficients, all set to zero. Then we create default render parameters with the former model coefficients for an image of size 640x480:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">parameters</span>.{MoMoInstance, RenderParameter}
+
+<span class="kw">val</span> modelInstance = MoMoInstance.<span class="fu">fromCoefficients</span>(model.<span class="fu">zeroCoefficients</span>, modelFile.<span class="fu">toURI</span>)
+<span class="kw">val</span> parameters = RenderParameter.<span class="fu">default</span>.
+  <span class="fu">withMoMo</span>(modelInstance).
+  <span class="fu">forImageSize</span>(<span class="dv">640</span>, <span class="dv">480</span>)</code></pre></div>
+<p>Now that we have the model and a set of parameters we render the image and display it in a window. For this we need a renderer that can generate an image for a set of parameters. We construct a <code>MoMoRenderer</code> and directly pass the model to it. Then we use the renderer to generate an image given our parameters.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">face</span>.<span class="fu">MoMoRenderer</span>
+
+<span class="kw">val</span> renderer = <span class="fu">MoMoRenderer</span>(model)
+<span class="kw">val</span> image = renderer.<span class="fu">renderImage</span>(parameters)</code></pre></div>
+<p>To display the image we create an image panel. Finally we show the image panel in a new window with the title &quot;First Image&quot;. While the IDE usually helps to find the correct imports, the import with the <code>GUIBlock</code> can not be resolved by the IDE. If it is missing, the function <code>displayIn</code> will not be found.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">gui</span>.<span class="fu">ImagePanel</span>
+<span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">gui</span>.<span class="fu">GUIBlock</span>.<span class="fu">_</span>
+
+<span class="kw">val</span> panel = <span class="fu">ImagePanel</span>(image)
+panel.<span class="fu">displayIn</span>(<span class="st">&quot;First Image&quot;</span>)</code></pre></div>
+<p>The image fills the complete frame that is opened. Due to the parameters the face covers only a smaller region in the image center.</p>
+<p>Let us now change the parameters and so generate a different image. We will scale the face by changing the pose part of the parameters. Then we render a new image and display it in a second window.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> newPose = parameters.<span class="fu">pose</span>.<span class="fu">copy</span>(scaling = <span class="fl">1.3</span>)
+<span class="kw">val</span> scaledParameters = parameters.<span class="fu">copy</span>(pose = newPose)
+<span class="kw">val</span> image2 = renderer.<span class="fu">renderImage</span>(scaledParameters)
+<span class="kw">val</span> panel2 = <span class="fu">ImagePanel</span>(image2)
+panel2.<span class="fu">displayIn</span>(<span class="st">&quot;Modified Image&quot;</span>)</code></pre></div>
+<p>To further modify the face we change the model instance part. We set the first two components to 3.0. Then we update the set of parameters with the new instance, render a third image. This time we update the image in the second panel.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> newShape = <span class="fu">IndexedSeq</span>(<span class="fl">3.0</span>,<span class="fl">3.0</span>) ++ modelInstance.<span class="fu">shape</span>.<span class="fu">drop</span>(<span class="dv">2</span>)
+<span class="kw">val</span> changedInstance = modelInstance.<span class="fu">copy</span>(shape = newShape)
+<span class="kw">val</span> changedShape = scaledParameters.<span class="fu">copy</span>(momo = changedInstance)
+<span class="kw">val</span> image3 = renderer.<span class="fu">renderImage</span>(changedShape)
+panel2.<span class="fu">updateImage</span>(image3)</code></pre></div>
+<h3 id="calculating-with-images">Calculating with Images</h3>
+<p>We have seen how to generate different images. Now, we want to compare images. We will look at two operations. First we want to compute an image to look at the difference. Then we want to calculate a numeric value expressing how much different the two images are. Finally we will analyse a set of images.</p>
+<p>So lets start to calculate an image that is the difference of two images. For this we will calculate the pure difference of two images. Then we scale the colors so that the color differences do not exceed the normal color space.</p>
+<p>The images are of type <code>PixelImage[A]</code>, a class which is parametrized over the pixel type. Here we will use <code>RGBA</code> as pixel type. For <code>RGBA</code> basic mathematical operations are implemented such as <code>-</code>, <code>+</code> or scaling with a scalar. We can use the functions <code>zip</code> with to images followed by a <code>map</code> to calculate an image based on pixel pairs. Using this the function for calculating the difference image looks as follows:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">color</span>.<span class="fu">RGBA</span>
+<span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">image</span>.<span class="fu">PixelImage</span>
+
+<span class="kw">def</span> <span class="fu">differenceImage</span>(
+  imageA: PixelImage[RGBA],
+  imageB: PixelImage[RGBA]
+) : PixelImage[RGBA] = {
+  imageA.<span class="fu">zip</span>(imageB).<span class="fu">map</span> { <span class="kw">case</span> (pixel1, pixel2) =&gt;
+    <span class="kw">val</span> colorDifference = pixel1 - pixel2
+    <span class="kw">val</span> scaledTo_0_1 = colorDifference * <span class="fl">0.5</span> + <span class="fu">RGBA</span>(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">1.0</span>)
+    scaledTo_0_1
+  }
+}</code></pre></div>
+<p>Then we apply the function:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> difference = <span class="fu">differenceImage</span>(image,image3)</code></pre></div>
+<p>Let us create a UI that displays two images together with the difference image in one frame. We use <code>stack</code> and <code>shelf</code> form <code>scalismo.faces.gui.GUIBlock</code> to combine multiple panels to one. We then assemble the UI in the following way:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> targetPanel = <span class="fu">ImagePanel</span>(image)
+<span class="kw">val</span> imagePanel = <span class="fu">ImagePanel</span>(image3)
+<span class="kw">val</span> differencePanel = <span class="fu">ImagePanel</span>(difference)
+
+<span class="kw">val</span> sideBySide = <span class="fu">shelf</span>(targetPanel, imagePanel)
+<span class="kw">val</span> overview = <span class="fu">stack</span>(
+  sideBySide,
+  differencePanel)
+overview.<span class="fu">displayIn</span>(<span class="st">&quot;Comparison&quot;</span>)</code></pre></div>
+<p>To not only compare the two images visually we want to further calculate the average difference between the overlaying region of the two faces. We calculate the mean squared differences of the color values that overlap. Note that here we zip the values of the two images together. Then we map the values. This results in a sequence of values that we can further process instead of returning an image. We then sum the resulting values and divide the sum by the number of terms:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> <span class="fu">meanSquaredDifference</span>(imageA: PixelImage[RGBA], imageB: PixelImage[RGBA]) = {
+  <span class="kw">val</span> diffsSquared = { 
+    <span class="kw">for</span> (
+      (colA, colB) &lt;- imageA.<span class="fu">values</span>.<span class="fu">zip</span>(imageB.<span class="fu">values</span>)
+      <span class="kw">if</span> ( colB.<span class="fu">a</span>&gt;<span class="dv">0</span> &amp;&amp; colA.<span class="fu">a</span>&gt;<span class="dv">0</span> )
+    ) <span class="kw">yield</span> {
+        <span class="kw">val</span> diff = (colA - colB)
+        diff.<span class="fu">dot</span>(diff)
+    }
+  }.<span class="fu">toSeq</span>
+  diffsSquared.<span class="fu">sum</span> / diffsSquared.<span class="fu">size</span>
+}</code></pre></div>
+<p>Lets look at the MSE between the two displayed images:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="fu">println</span>(<span class="fu">meanSquaredDifference</span>(image,image3))</code></pre></div>
+<p>We get a rather low value, as we are evaluating only the region where the two faces overlap. This is usually impossible in a real world setting.</p>
+<h3 id="analyzing-parameters">Analyzing Parameters</h3>
+<p>Lets start now to analyze an image. To have also a ground truth, we load some target parameters and generate the image they describe. We will then try to analyse the so generated image:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">io</span>.<span class="fu">RenderParameterIO</span>
+
+<span class="kw">val</span> targetParameters = RenderParameterIO.<span class="fu">read</span>(<span class="kw">new</span> File(<span class="st">&quot;data/day1/targetParameters.rps&quot;</span>)).<span class="fu">get</span>
+<span class="kw">val</span> targetImage = renderer.<span class="fu">renderImage</span>(targetParameters)
+targetPanel.<span class="fu">updateImage</span>(targetImage)</code></pre></div>
+<p>Next, we analyze the difference of two images when changing a single parameter:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> breeze.<span class="fu">numerics</span>.<span class="fu">abs</span>
+
+<span class="kw">val</span> states = <span class="kw">for</span> ( angle &lt;- -<span class="fl">3.145</span> to <span class="fl">3.145</span> by <span class="fl">0.1</span>) <span class="kw">yield</span> {
+  <span class="kw">val</span> rotatedParams = parameters.<span class="fu">copy</span>(pose = parameters.<span class="fu">pose</span>.<span class="fu">copy</span>(roll = angle))
+
+  <span class="kw">val</span> rotatedImage = renderer.<span class="fu">renderImage</span>(rotatedParams)
+  imagePanel.<span class="fu">updateImage</span>(rotatedImage)
+
+  <span class="kw">val</span> diff = <span class="fu">differenceImage</span>(targetImage,rotatedImage)
+  differencePanel.<span class="fu">updateImage</span>(diff)
+
+  <span class="kw">val</span> value = <span class="fu">meanSquaredDifference</span>(targetImage,rotatedImage)
+
+  (angle,value)
+}</code></pre></div>
+<p>Can you guess whats the best roll angle will be? Let us check which of the visited angles has the lowest MSE:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> best = states.<span class="fu">sortBy</span>(t =&gt; t.<span class="fu">_2</span>).<span class="fu">head</span>
+<span class="fu">println</span>(s<span class="st">&quot;Best value: ${best._2} at roll-angle: ${best._1/math.Pi*180}°&quot;</span>)</code></pre></div>
+<p>Was it approximately your guess? next we display the image corresponding to the best parameters:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> bestParams = parameters.<span class="fu">copy</span>(pose = parameters.<span class="fu">pose</span>.<span class="fu">copy</span>(roll = best.<span class="fu">_1</span>))
+
+<span class="kw">val</span> bestImage = renderer.<span class="fu">renderImage</span>(bestParams)
+imagePanel.<span class="fu">updateImage</span>(bestImage)
+
+<span class="kw">val</span> bestImageDiff = <span class="fu">differenceImage</span>(bestImage,targetImage)
+differencePanel.<span class="fu">updateImage</span>(bestImageDiff)</code></pre></div>
+<p>As expected the face matches quite nicely, especially the facial features. We now plot the MSE over the angle and the difference to the groundtruth with the following piece of code:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> breeze.<span class="fu">plot</span>.<span class="fu">_</span>
+
+<span class="kw">val</span> f = <span class="fu">Figure</span>(<span class="st">&quot;Roll dependent image difference&quot;</span>)
+<span class="kw">val</span> p = f.<span class="fu">subplot</span>(<span class="dv">0</span>)
+<span class="kw">val</span> (x, y) = states.<span class="fu">unzip</span>
+p += <span class="fu">plot</span>(x, y, name = <span class="st">&quot;MSE of images&quot;</span>)
+p.<span class="fu">ylim</span> = (<span class="fl">0.0</span>,<span class="fl">0.3</span>)
+p.<span class="fu">legend</span> = <span class="kw">true</span></code></pre></div>
+<p>It is clearly visible that there are a few local optima. Depending on the initialization and the optimization they can become a severe problem.</p>
+<p>Next, we introduce a small challenge of this first day.</p>
+<h2 id="challenge">Challenge</h2>
+<p>Your challenge of the first day is to figure out which parameters were used to generate the following image:</p>
+<div class="figure">
+<img src="goal.png" title="Which parameters were used to generate the following image?" />
+
+</div>
+<p>The image is located in the folder <code>data/day1/targetImages/challenge.png</code>. The extraction of all parameters from a single image is the end goal of this course. For today we ease the task a bit. We provide several images where only one block of the parameters is changed. Which one is indicated by the name of the image. The following images are also located in the folder <code>data/day1/targetImages/</code>:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">pose.png</th>
+<th align="left">illumination.png</th>
+<th align="left">model.png</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><img src="pose.png" /></td>
+<td align="left"><img src="environmentMap.png" /></td>
+<td align="left"><img src="momo.png" /></td>
+</tr>
+</tbody>
+</table>
+<p>More details on the parameters to estimate are:</p>
+<ul>
+<li><p>For the pose only the three rotation angles need to be estimated. A frontal face pose corresponds to all rotation angles set to zero. The angles are specified in radians.</p></li>
+<li><p>We use spherical harmonics to encode the illumination conditions. The method <code>fromAmbientDiffuse</code> calculates the spherical harmonics parameter from a given directional light. You only need to determine the diffuse color and the direction. The color and the direction values lie all in the interval <em>[0..1]</em>. The ambient light has all three color values set to 0.5. You can then generate the parameters using the following code snippet.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> params: RenderParameter = ???
+<span class="kw">val</span> ambient = <span class="fu">RGB</span>(<span class="fl">0.5</span>,<span class="fl">0.5</span>,<span class="fl">0.5</span>)
+<span class="kw">val</span> diffuse: RGB = ???
+<span class="kw">val</span> direction: Vector[_3D] = ???
+<span class="kw">val</span> newSHLight: SphericalHarmonicsLight = SphericalHarmonicsLight.<span class="fu">fromAmbientDiffuse</span>(ambient,diffuse,direction)
+<span class="kw">val</span> newParams = params.<span class="fu">copy</span>(environmentMap = newSHLight)</code></pre></div></li>
+<li><p>For the model parameters you need to estimate only 5 shape parameters and 5 color parameters. The model parameters follow a standard multivariate Gaussian distribution.</p></li>
+</ul>
+<p>In the following we provide different code snippets that help to get started with the challenge. Note that the initial parameters changed compared to the already used code. They are given in the first snippet.</p>
+<h3 id="general-help">General Help</h3>
+<h4 id="initial-parameters-you-can-use">Initial parameters you can use</h4>
+<p>Use the following initial parameters. You have to load the model and the target image to make the snippet work.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> modelFile: File = ???
+<span class="kw">val</span> targetImage: PixelImage[RGBA] = ???
+<span class="kw">val</span> momo550 = MoMoInstance.<span class="fu">zero</span>(<span class="dv">5</span>,<span class="dv">5</span>,<span class="dv">0</span>,modelFile.<span class="fu">toURI</span>)
+<span class="kw">val</span> bluePrint = RenderParameter.<span class="fu">defaultSquare</span>.
+  <span class="fu">withImageSize</span>(<span class="fu">ImageSize</span>(targetImage.<span class="fu">width</span>,targetImage.<span class="fu">height</span>)).
+  <span class="fu">withMoMo</span>(momo550)</code></pre></div>
+<h4 id="save-or-load-an-image">Save or load an image</h4>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">io</span>.<span class="fu">PixelImageIO</span>
+
+<span class="co">// load image</span>
+<span class="kw">val</span> poseImage = PixelImageIO.<span class="fu">read</span>[RGBA](<span class="kw">new</span> File(<span class="st">&quot;data/day1/targetImages/pose.png&quot;</span>)).<span class="fu">get</span>
+
+<span class="co">// save image</span>
+PixelImageIO.<span class="fu">write</span>(image,<span class="kw">new</span> File(<span class="st">&quot;data/day1/CREATED_FOLDER/image.png&quot;</span>))</code></pre></div>
+<h4 id="save-or-load-parameters">Save or load parameters</h4>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">io</span>.<span class="fu">RenderParameterIO</span>
+
+<span class="kw">val</span> targetParameters = RenderParameterIO.<span class="fu">read</span>(<span class="kw">new</span> File(<span class="st">&quot;data/day1/targetParameters.rps&quot;</span>)).<span class="fu">get</span>
+
+RenderParameterIO.<span class="fu">write</span>(parameters,<span class="kw">new</span> File(<span class="st">&quot;data/day1/CREATED_FOLDER/GroupName.rps&quot;</span>))</code></pre></div>
+<h3 id="some-sketched-algorithm">Some sketched algorithm</h3>
+<p>The following snippets are a fast start for those of you who are not so familiar with scala. We encourage you to try your own algorithm.</p>
+<h4 id="skeleton-for-the-pose-grid-search">Skeleton for the pose grid search</h4>
+<p>We define a simple grid search around a median parameter. Then we go <em>N</em> times a <em>delta</em> to the right and to the left of this position. Here we show the code for the pose. You have to change the locations marked with <code>???</code>:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> N: Int = <span class="dv">1</span> <span class="co">// number of points to either side of the median parameter</span>
+<span class="kw">val</span> delta: Pose = <span class="fu">Pose</span>(<span class="fl">0.0</span>,Vector(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>),???,???,???)<span class="co">// parameter change between neighbouring points</span>
+<span class="kw">val</span> median: Pose = <span class="fu">Pose</span>(<span class="fl">1.0</span>,Vector(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>),???,???,???) <span class="co">// median value of parameter</span>
+
+<span class="kw">val</span> evaluationList = <span class="kw">for</span> (
+  rollStep &lt;- (-N to N by <span class="dv">1</span>);
+  yawStep &lt;- (-N to N by <span class="dv">1</span>);
+  pitchStep &lt;- (-N to N by <span class="dv">1</span>).<span class="fu">par</span>
+) <span class="kw">yield</span> {
+  <span class="kw">var</span> roll = median.<span class="fu">roll</span> + delta.<span class="fu">roll</span> * rollStep
+  <span class="kw">var</span> yaw = median.<span class="fu">roll</span> + delta.<span class="fu">roll</span> * rollStep
+  <span class="kw">var</span> pitch = median.<span class="fu">roll</span> + delta.<span class="fu">roll</span> * rollStep
+
+
+  <span class="kw">val</span> pose: Pose = ???
+  <span class="kw">val</span> param: RenderParameter = ???
+  <span class="kw">val</span> image: PixelImage[RGBA] = ???
+  <span class="kw">val</span> difference: Double = ???
+  (difference, param)
+}
+
+<span class="kw">val</span> bestParams = evaluationList.<span class="fu">minBy</span>(_.<span class="fu">_1</span>)</code></pre></div>
+<h4 id="recursive-algorithm">Recursive algorithm</h4>
+<p>A recursive algorithm that can e.g. be combined with the above grid search:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">def</span> <span class="fu">tryParameters</span>(target: PixelImage[RGBA], median: Pose, delta: Pose) : Pose = {
+
+  <span class="kw">val</span> newMedian: Pose = ??? <span class="co">// use e.g. grid search here</span>
+
+  <span class="kw">if</span> ( ??? <span class="co">/* stopping criteria */</span> ) newMedian
+  <span class="kw">else</span> {
+    <span class="kw">val</span> newDelta: Pose = ??? <span class="co">// reduce the grid spacing</span>
+    <span class="fu">tryParameters</span>(target, newMedian, newDelta)
+  }
+}
+
+<span class="kw">val</span> targetImage: PixelImage[RGBA] = ???
+<span class="kw">val</span> delta: Pose = <span class="fu">Pose</span>(<span class="fl">0.0</span>,Vector(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>),???,???,???)
+<span class="kw">val</span> median: Pose = <span class="fu">Pose</span>(<span class="fl">1.0</span>,Vector(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>),???,???,???)
+<span class="kw">val</span> solution = <span class="fu">tryParameters</span>(targetImage, median, delta)</code></pre></div>
+<h4 id="hill-climbing-algorithm">Hill climbing algorithm</h4>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">var</span> bestValue: Double = ???
+<span class="kw">var</span> bestParams: RenderParameter = ???
+
+<span class="kw">def</span> <span class="fu">randomChange</span>(p: RenderParameter): RenderParameter = ???
+
+<span class="kw">while</span>( ??? ) {
+  <span class="kw">val</span> newParams: RenderParameter = <span class="fu">randomChange</span>(bestParams)
+  <span class="kw">val</span> newValue: Double = ???
+
+  <span class="kw">if</span> ( newValue &lt; bestValue ) {
+    bestParams = newParams
+    bestValue = newValue
+  }
+}</code></pre></div>
+</body>
+</html>

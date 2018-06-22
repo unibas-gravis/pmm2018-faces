@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="tufte.css" type="text/css" />
+</head>
+<body>
+<h1 id="debugging-sampling">Debugging sampling</h1>
+<p>Sampling algorithms are generally hard to debug. Often mistakes are hidden by the stochastic nature of the underlying MCMC method. Further the final algorithm combined using several building blocks becomes fast very complex.</p>
+<h2 id="where-to-start">Where to start?</h2>
+<p>Some starting points where to look for problems are:</p>
+<ul>
+<li><p><strong>Accept/Reject ratios</strong> If no sample is accepted then we wast computation time by evaluating too many samples we do not accept. This is often due to a too broad proposal distribution and hence we should use a smaller standard deviation. If we get a much higher acceptance rate than 0.25 we possibly try too similar samples and hence should increase the broadness of the proposal distribution. Looking at the global ar-ratio is usually not enough. We need the ar-ratios for each proposal individually.</p></li>
+<li><p><strong>State of algorithm</strong> When the algorithm is started we need to overcome the burn-in phase. Only the samples from after the burn-in phase should be used to estimate the posterior distribution. So it is crucial to find out when the burn-in is over. This can often be seen from a plot of the posterior value.</p></li>
+</ul>
+<h2 id="where-are-pitfalls">Where are pitfalls?</h2>
+<p>While the former points seem to be easy to tackle there are a few possible pitfalls:</p>
+<ul>
+<li><strong>The likelihood</strong> When we plot the posterior values of the samples, we often observe an ever increasing value. We would expect this from a more traditional optimization algorithm but not from an MCMC method aimed for sampling from a posterior. One cause is the pixel-wise independence assumption. As we have many independent observations our posterior distribution gets strongly peaked. The algorithm is over-confident about the solution.</li>
+</ul>
+<p>A further consequence of such a peaked posterior distribution is that the ar-ratio will drop drastically during a sampling run. So observing a dropping ar-ratio may also indicate that we have to rethink our likelihood model, make the proposal distribution to cover multiple scales or adapt the proposal distribution over time.</p>
+<p>A possible way to change the image likelihood is to not model the pixel differences independently but to model the average of all pixel differences. You can use the class <code>scalismo.faces.sampling.face.evaluators.CollectiveLikelihoodEvaluator</code> from our framework.</p>
+<ul>
+<li><strong>Filtering</strong> Another pitfall when debugging is caused by filtering. A filter that rejects a sample passes the last accepted state outwards and not the newly proposed sample. This results that debugging only the final chain often hallucinates a too high ar-ratio. You can however add loggers to each filter separately.</li>
+</ul>
+<h2 id="simple-example-to-start-with">Simple example to start with</h2>
+<p>We provide you with a small example how to start debugging. For this we change the sample type to not only contain the nescessary values for fitting but extends it to an additional tag, which is used to store where the sample originate from. The changed sample type then forces us to adapt also different parts of the algorithm.</p>
+<p>Create a file called TaggedSample.scala and put in the following code. Note that the IDE should be able to fix the imports.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">case</span> <span class="kw">class</span> TaggedSample[A](tag: String, sample: A)
+
+<span class="kw">case</span> <span class="kw">class</span> TaggedProposalGenerator[A](
+  name: String,
+  generator: ProposalGenerator[A] <span class="kw">with</span> TransitionProbability[A]
+  ) <span class="kw">extends</span> ProposalGenerator[TaggedSample[A]] <span class="kw">with</span> TransitionProbability[TaggedSample[A]] {
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">propose</span>(current: TaggedSample[A]): TaggedSample[A] = {
+    <span class="fu">TaggedSample</span>(name,generator.<span class="fu">propose</span>(current.<span class="fu">sample</span>))
+  }
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">logTransitionProbability</span>(from: TaggedSample[A], to: TaggedSample[A]): Double = {
+    generator.<span class="fu">logTransitionProbability</span>(from.<span class="fu">sample</span>,to.<span class="fu">sample</span>)
+  }
+}
+
+<span class="kw">case</span> <span class="kw">class</span> TaggedSampleVerboseLogger[A](ostream: OutputStream) <span class="kw">extends</span> AcceptRejectLogger[TaggedSample[A]] {
+
+  <span class="kw">var</span> index = <span class="dv">0</span>
+  <span class="kw">val</span> writer = <span class="kw">new</span> PrintWriter(ostream)
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">accept</span>(current: TaggedSample[A], sample: TaggedSample[A], generator: ProposalGenerator[TaggedSample[A]], evaluator: DistributionEvaluator[TaggedSample[A]]): Unit = {
+    <span class="fu">log</span>(<span class="st">&quot;A&quot;</span>,current,sample,generator,evaluator)
+    index += <span class="dv">1</span>
+  }
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">reject</span>(current: TaggedSample[A], sample: TaggedSample[A], generator: ProposalGenerator[TaggedSample[A]], evaluator: DistributionEvaluator[TaggedSample[A]]): Unit = {
+    <span class="fu">log</span>(<span class="st">&quot;R&quot;</span>,current,sample,generator,evaluator)
+    index += <span class="dv">1</span>
+  }
+
+  <span class="kw">def</span> <span class="fu">log</span>(tag: String, current: TaggedSample[A], sample: TaggedSample[A], generator: ProposalGenerator[TaggedSample[A]], evaluator: DistributionEvaluator[TaggedSample[A]]): Unit = {
+    writer.<span class="fu">println</span>(s<span class="st">&quot;${&quot;</span>%06d<span class="st">&quot;.format(index)} $tag ${sample.tag} ${evaluator.logValue(sample)}&quot;</span>)
+    writer.<span class="fu">flush</span>()
+  }
+
+  <span class="kw">def</span> <span class="fu">stop</span>(): Unit = {
+    writer.<span class="fu">flush</span>()
+    writer.<span class="fu">close</span>()
+  }
+}
+
+<span class="kw">object</span> TaggedSample {
+  
+  <span class="kw">object</span> implicits {
+    
+    <span class="kw">implicit</span> <span class="kw">class</span> ProposalGeneratorTagger[A](<span class="kw">val</span> generator: ProposalGenerator[A] <span class="kw">with</span> TransitionProbability[A]) {
+      <span class="kw">def</span> <span class="fu">withName</span>(name: String) = <span class="fu">TaggedProposalGenerator</span>(name,generator)
+    }
+
+    <span class="kw">implicit</span> <span class="kw">class</span> TaggedDistributionEvaluator[A](<span class="kw">val</span> evaluator: DistributionEvaluator[A]) <span class="kw">extends</span> DistributionEvaluator[TaggedSample[A]]{
+      <span class="kw">override</span> <span class="kw">def</span> <span class="fu">logValue</span>(namedSample: TaggedSample[A]): Double = {
+        evaluator.<span class="fu">logValue</span>(namedSample.<span class="fu">sample</span>)
+      }
+    }
+
+    <span class="kw">implicit</span> <span class="kw">class</span> TaggedAcceptRejectLogger[A](<span class="kw">val</span> logger: AcceptRejectLogger[A]) <span class="kw">extends</span> AcceptRejectLogger[TaggedSample[A]] {
+      <span class="kw">override</span> <span class="kw">def</span> <span class="fu">accept</span>(current: TaggedSample[A], sample: TaggedSample[A], generator: ProposalGenerator[TaggedSample[A]], evaluator: DistributionEvaluator[TaggedSample[A]]): Unit = {
+        logger.<span class="fu">accept</span>(current.<span class="fu">sample</span>,sample.<span class="fu">sample</span>,generator.<span class="fu">asInstanceOf</span>[TaggedProposalGenerator[A]].<span class="fu">generator</span>,evaluator.<span class="fu">asInstanceOf</span>[TaggedDistributionEvaluator[A]].<span class="fu">evaluator</span>)
+      }
+
+      <span class="kw">override</span> <span class="kw">def</span> <span class="fu">reject</span>(current: TaggedSample[A], sample: TaggedSample[A], generator: ProposalGenerator[TaggedSample[A]], evaluator: DistributionEvaluator[TaggedSample[A]]): Unit = {
+        logger.<span class="fu">reject</span>(current.<span class="fu">sample</span>,sample.<span class="fu">sample</span>,generator.<span class="fu">asInstanceOf</span>[TaggedProposalGenerator[A]].<span class="fu">generator</span>,evaluator.<span class="fu">asInstanceOf</span>[TaggedDistributionEvaluator[A]].<span class="fu">evaluator</span>)
+      }
+    }
+
+    <span class="kw">implicit</span> <span class="kw">class</span> TaggedChainStateLogger[A](<span class="kw">val</span> logger: ChainStateLogger[A]) <span class="kw">extends</span> ChainStateLogger[TaggedSample[A]] {
+      <span class="kw">override</span> <span class="kw">def</span> <span class="fu">logState</span>(sample: TaggedSample[A]): Unit = {
+        logger.<span class="fu">logState</span>(sample.<span class="fu">sample</span>)
+      }
+    }
+
+  }
+
+}</code></pre></div>
+<p>Now we can import the functionality into our sampling script.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> TaggedSample
+<span class="kw">import</span> TaggedSample.<span class="fu">implicits</span>.<span class="fu">_</span>
+<span class="kw">import</span> TaggedSampleVerboseLogger</code></pre></div>
+<p>We now transform proposals to <code>ProposalGenerator[RenderParameter]</code> and tag them to create a named version.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> namedShapeProposal = <span class="fu">GaussianMoMoShapeProposal</span>(<span class="fl">0.05</span>).<span class="fu">toParameterProposal</span>.<span class="fu">withName</span>(<span class="st">&quot;shape&quot;</span>)</code></pre></div>
+<p>Next we can create a logger for those samples.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> file = <span class="kw">new</span> File(<span class="st">&quot;/tmp/taggedVerboseLogger.txt&quot;</span>)
+<span class="kw">val</span> os = <span class="kw">new</span> FileOutputStream(file)
+<span class="kw">val</span> taggedVerboseLogger = TaggedSampleVerboseLogger[RenderParameter](os)</code></pre></div>
+<p>As new initial state we also need a tagged sample.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> taggedInit = <span class="fu">TaggedSample</span>(<span class="st">&quot;init&quot;</span>,initial)</code></pre></div>
+<p>Now we can simply use the new proposal, the new init, the new logger together with old, untagged loggers and evaluators. They should be transformed implicitly when you made the imports.</p>
+<p>To look at the information we write to the file, you can use the following application. The application will print and plot the ar-ratio for each proposal over the sampling run and plot the posterior values for the accepted and for the rejected samples.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> java.<span class="fu">io</span>.<span class="fu">File</span>
+<span class="kw">import</span> breeze.<span class="fu">plot</span>.<span class="fu">_</span>
+<span class="kw">import</span> scala.<span class="fu">io</span>.<span class="fu">Source</span>
+
+<span class="kw">object</span> Debugging <span class="kw">extends</span> App {
+
+  <span class="co">// read lines and split at spaces</span>
+  <span class="kw">val</span> source = Source.<span class="fu">fromFile</span>(<span class="kw">new</span> File(<span class="st">&quot;/tmp/taggedVerboseLogger.txt&quot;</span>))
+  <span class="kw">val</span> allLines = source.<span class="fu">getLines</span>().<span class="fu">toIndexedSeq</span>
+  <span class="kw">val</span> infos = allLines.<span class="fu">map</span>(line =&gt; line.<span class="fu">split</span>(&#39; &#39;))
+
+  <span class="co">// plot ar-ratios per proposal</span>
+  {
+    <span class="kw">val</span> proposalNames = infos.<span class="fu">map</span>(<span class="fu">_</span>(<span class="dv">2</span>)).<span class="fu">distinct</span> <span class="co">// find name of logged proposals</span>
+
+    <span class="co">// evaluate the ar-ratio batch wise</span>
+    <span class="kw">val</span> ratioHistory = infos.<span class="fu">grouped</span>(<span class="dv">1000</span>).<span class="fu">toIndexedSeq</span>.<span class="fu">map</span> { lines =&gt;
+
+      <span class="co">// evalute the ar-ratio of each proposal</span>
+      <span class="kw">val</span> ratios = <span class="kw">for</span> (name &lt;- proposalNames) <span class="kw">yield</span> {
+
+        <span class="kw">val</span> selectedProposals = lines.<span class="fu">filter</span>(info =&gt; <span class="fu">info</span>(<span class="dv">2</span>) == name)
+        <span class="kw">val</span> statusSeq = selectedProposals.<span class="fu">map</span>(<span class="fu">_</span>(<span class="dv">1</span>))
+
+        <span class="kw">val</span> nA = statusSeq.<span class="fu">count</span>(_==<span class="st">&quot;A&quot;</span>)
+        <span class="kw">val</span> nR = statusSeq.<span class="fu">count</span>(_==<span class="st">&quot;R&quot;</span>)
+        <span class="kw">val</span> N = nA + nR
+        <span class="kw">val</span> ratio = nA.<span class="fu">toDouble</span> / N
+
+        <span class="co">// pretty print info</span>
+        <span class="kw">val</span> d = (ratio * <span class="dv">100</span>).<span class="fu">toInt</span>
+        <span class="fu">print</span>(s<span class="st">&quot;${name} ${&quot;</span>%3d<span class="st">&quot;.format(d)}% / (${&quot;</span>%3d<span class="st">&quot;.format(N)}) </span><span class="ch">\t</span><span class="st">|</span><span class="ch">\t</span><span class="st"> &quot;</span>)
+        ratio
+      }
+      <span class="fu">println</span>()
+      ratios
+    }
+
+
+    <span class="co">// make the ar-plot</span>
+    <span class="kw">val</span> f = <span class="fu">Figure</span>(<span class="st">&quot;AR-Plot&quot;</span>)
+    <span class="kw">val</span> p = f.<span class="fu">subplot</span>(<span class="dv">0</span>)
+    <span class="kw">val</span> linspace = (<span class="dv">0</span> until ratioHistory.<span class="fu">size</span>).<span class="fu">map</span>(_.<span class="fu">toDouble</span>)
+    <span class="kw">for</span>( (selector,idx) &lt;- proposalNames.<span class="fu">zipWithIndex</span> ) {
+      <span class="kw">val</span> y = ratioHistory.<span class="fu">map</span>(seq =&gt; <span class="fu">seq</span>(idx))
+      p += <span class="fu">plot</span>(linspace, y, name=selector)
+    }
+    p.<span class="fu">legend</span> = <span class="kw">true</span>
+    p.<span class="fu">ylim</span> = (-<span class="fl">0.05</span>,<span class="fl">1.05</span>)
+    f.<span class="fu">refresh</span>()
+  }
+
+
+
+  <span class="co">// plot posterior values for accepted and rejected samples separately</span>
+  {
+
+    <span class="co">// get ((status, posterior-value) index) of samples</span>
+    <span class="kw">val</span> statusPValueIndex = infos.<span class="fu">map</span>(i =&gt; (<span class="fu">i</span>(<span class="dv">1</span>),<span class="fu">i</span>(<span class="dv">3</span>).<span class="fu">toDouble</span>)).<span class="fu">zipWithIndex</span>
+
+    <span class="co">// divide accepted and rejected samples apart → (index,pvalue)</span>
+    <span class="kw">val</span> values = <span class="kw">for</span> (status &lt;- Seq(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;R&quot;</span>)) <span class="kw">yield</span> {
+      <span class="kw">val</span> setOfSamples = statusPValueIndex.<span class="fu">filter</span>(smp =&gt; smp.<span class="fu">_1</span>.<span class="fu">_1</span> == status)
+      setOfSamples.<span class="fu">map</span>{ <span class="kw">case</span> (info,index) =&gt;
+        (index,info.<span class="fu">_2</span>)
+      }
+    }
+
+    <span class="co">// plot values for the two sequences</span>
+    <span class="kw">val</span> f = <span class="fu">Figure</span>(<span class="st">&quot;neg. log. posterior-values&quot;</span>)
+    <span class="kw">val</span> p = f.<span class="fu">subplot</span>(<span class="dv">0</span>)
+    <span class="kw">for</span> ( valueSequence &lt;- values ) {
+      <span class="kw">val</span> (x,y) = valueSequence.<span class="fu">unzip</span>
+      p += <span class="fu">plot</span>(x.<span class="fu">map</span>(_.<span class="fu">toDouble</span>),y,&#39;.&#39;)
+    }
+    f.<span class="fu">refresh</span>()
+
+  }
+}</code></pre></div>
+</body>
+</html>

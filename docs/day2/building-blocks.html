@@ -1,0 +1,287 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="tufte.css" type="text/css" />
+</head>
+<body>
+<h1 id="building-blocks-for-sampling">Building Blocks for Sampling</h1>
+<p>Welcome to the second day of the coding afternoons. Today it is all about sampling. We start with a short, general introduction of the software used for sampling. Then we address the problem of drawing samples of our generative face model given observed landmarks.</p>
+<h2 id="basic-sampling">Basic sampling</h2>
+<p>First we setup the basic stuff. Create a new scala application file (e.g. <code>Day02.scala</code>). The basic skeleton for the application is the same as provided yesterday:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">object</span> Day02 <span class="kw">extends</span> App {}</code></pre></div>
+<p>We first initialize scalismo and seed a random number generator. The random number generator is implicitly passed to several parts of the framework where randomness is needed. Hence, setting the seed in the beginning makes the results reproducible.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">utils</span>.<span class="fu">Random</span>
+
+scalismo.<span class="fu">initialize</span>()
+<span class="kw">implicit</span> <span class="kw">val</span> rng = Random(1024L)</code></pre></div>
+<h3 id="sampling-building-blocks">Sampling Building Blocks</h3>
+<p>From the lecture you know what sampling is about. In the framework this maps to pieces of code. In the following <code>A</code> is a type parameter to introduce the software building blocks. You do not need to execute or copy the following code as we will revisit them step-by-step later on:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="co">// An initial state, i.e. a given set of parameters to start with</span>
+<span class="kw">val</span> intialState: A = ???
+
+<span class="co">// A way to change a set of parameters to propose a new set of parameters</span>
+<span class="kw">val</span> proposal: ProposalGenerator[A] = ???
+
+<span class="co">// A point wise evaluation of the posterior given a set of parameters</span>
+<span class="kw">val</span> evaluator: DistributionEvaluator[A] = ???
+
+<span class="co">// A sampling algorithm</span>
+<span class="kw">val</span> algorithm: Metropolis[A] = Metropolis[A](proposal,evaluator)
+
+<span class="co">// A sampling chain which is lazy in the software</span>
+<span class="kw">val</span> chainIterator: Iterator[A] = algorithm.<span class="fu">iterator</span>(intialState)
+
+<span class="co">// A sequence of realized samples</span>
+<span class="kw">val</span> states: IndexedSeq[A] = chainIterator.<span class="fu">take</span>(<span class="dv">5000</span>).<span class="fu">toIndexedSeq</span></code></pre></div>
+<p>Next, we present the example you should know from the lecture.</p>
+<h3 id="toy-example">Toy example</h3>
+<p>We reuse the example of a 2d Gaussian distribution with strong correlation among the dimensions as the target distribution. We will generate samples from an isotropic Gaussian distribution used as proposal distribution. Then we transform these proposed samples into samples from the target distribution by only point wise evaluations of the target distribution.</p>
+<p>The parameters for this example are represented as a 2d vector:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> breeze.<span class="fu">linalg</span>.<span class="fu">DenseVector</span>
+
+<span class="kw">val</span> initialState: DenseVector[Double] = <span class="fu">DenseVector</span>(<span class="fl">0.0</span>,<span class="fl">0.0</span>)</code></pre></div>
+<p>Next we create the proposal distribution. We use the generic trait <code>ProposalGenerator[A]</code> and override the function <code>propose</code> which proposes a new state given the current state. We have chosen to update either of the components with a Gaussian perturbation update. The Gaussian perturbation has a symmetric transition ratio. This means the transition from one state to another is the same as the other way around. This is a nescessary condition for the Metropolis algorithm.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">ProposalGenerator</span>
+<span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">SymmetricTransitionRatio</span>
+<span class="kw">val</span> proposal = <span class="kw">new</span> ProposalGenerator[DenseVector[Double]] <span class="kw">with</span> SymmetricTransitionRatio[DenseVector[Double]] {
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">propose</span>(current: DenseVector[Double]): DenseVector[Double] = {
+    <span class="co">// selection of the component</span>
+    <span class="kw">val</span> componentId = rng.<span class="fu">scalaRandom</span>.<span class="fu">nextInt</span>(<span class="dv">2</span>)
+    
+    <span class="co">// random update</span>
+    <span class="kw">val</span> delta = rng.<span class="fu">scalaRandom</span>.<span class="fu">nextGaussian</span>()
+    
+    <span class="kw">val</span> next = current.<span class="fu">copy</span>
+    <span class="fu">next</span>(componentId) += delta
+    next
+  }
+  
+}</code></pre></div>
+<p>Then we define the evaluator. We use directly the target density we try to infer. The basic class for the evaluator is the <code>DistributionEvaluator[A]</code> where we override the function <code>logValue(sample: A)</code>.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> breeze.<span class="fu">linalg</span>.{DenseMatrix, DenseVector}
+<span class="kw">import</span> scalismo.<span class="fu">statisticalmodel</span>.<span class="fu">MultivariateNormalDistribution</span>
+<span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">DistributionEvaluator</span>
+
+<span class="kw">val</span> evaluator = <span class="kw">new</span> DistributionEvaluator[DenseVector[Double]] {
+
+  <span class="kw">val</span> posterior = MultivariateNormalDistribution.<span class="fu">apply</span>(
+    mean = <span class="fu">DenseVector</span>(<span class="fl">1.5</span>,<span class="fl">2.0</span>),
+    cov = <span class="fu">DenseMatrix</span>(
+      (<span class="fl">2.0</span>,<span class="fl">1.9</span>),
+      (<span class="fl">1.9</span>,<span class="fl">2.0</span>)
+    )
+  )
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">logValue</span>(sample: DenseVector[Double]): Double = {
+    posterior.<span class="fu">logpdf</span>(sample)
+  }
+}</code></pre></div>
+<p>The proposal and the evaluator are then combined in the Metropolis algorithm. We get a lazy iterator over the future samples of the markov chain by providing an initial state:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">algorithms</span>.<span class="fu">Metropolis</span>
+
+<span class="kw">val</span> algorithm = Metropolis[DenseVector[Double]](proposal,evaluator)
+<span class="kw">val</span> chainIterator = algorithm.<span class="fu">iterator</span>(initialState)</code></pre></div>
+<p>We can draw the number of samples we want from the iterator. Transforming the samples to an <code>IndexedSeq</code> forces the computer to calculate them.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> samples: IndexedSeq[DenseVector[Double]] = chainIterator.<span class="fu">take</span>(<span class="dv">5000</span>).<span class="fu">toIndexedSeq</span></code></pre></div>
+<p>To compare our samples we draw the same number of points directly from the posterior distribution.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> posteriorSamples = <span class="kw">for</span> (i &lt;- (<span class="dv">0</span> until <span class="dv">5000</span>)) <span class="kw">yield</span> evaluator.<span class="fu">posterior</span>.<span class="fu">sample</span>()</code></pre></div>
+<p>Then we visualize the two sets of samples:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> breeze.<span class="fu">plot</span>.<span class="fu">_</span>
+<span class="kw">val</span> f2d = <span class="fu">Figure</span>(<span class="st">&quot;Scatter plot - distribution&quot;</span>)
+<span class="kw">val</span> p2d = f2d.<span class="fu">subplot</span>(<span class="dv">0</span>)
+p2d.<span class="fu">legend</span> = <span class="kw">true</span>
+
+<span class="co">// data to plot</span>
+p2d += <span class="fu">plot</span>(samples.<span class="fu">map</span>(<span class="fu">_</span>(<span class="dv">0</span>)),samples.<span class="fu">map</span>(<span class="fu">_</span>(<span class="dv">1</span>)), style = &#39;.&#39;,name = <span class="st">&quot;samples&quot;</span>)
+p2d += <span class="fu">plot</span>(posteriorSamples.<span class="fu">map</span>(<span class="fu">_</span>(<span class="dv">0</span>)),posteriorSamples.<span class="fu">map</span>(<span class="fu">_</span>(<span class="dv">1</span>)), style = &#39;.&#39;,name = <span class="st">&quot;posterior&quot;</span>)
+p2d.<span class="fu">xlim</span> = (-<span class="dv">3</span>,<span class="dv">7</span>)
+p2d.<span class="fu">ylim</span> = (-<span class="dv">3</span>,<span class="dv">7</span>)</code></pre></div>
+<p>Do the two sets of sample follow the same distribution? Change now the scale of the update (<code>delta</code>) in the proposal by an order of magnitude, e.g. multiply the update once with 0.1 and once with 10. Can you observe a change in the result?</p>
+<p>While the initial configuration leads to a more or less good result, increasing the updates by a factor of ten will result in much less points. Many samples will be rejected. Nevertheless the distribution still seems to be approximated nicely. Decreasing the update step size by a factor of ten leads to high correlation between the samples. Nearly all samples are accepted, but the 5000 samples we draw are not enough to cover the full range of the distribution. We have to increase the number of samples to better exploit the lengthy structure of the distribution.</p>
+<h2 id="sampling-using-landmarks">Sampling using Landmarks</h2>
+<p>We will now develop a sampling algorithm to infere the posterior distribution of render parameters given observed landmarks. For this we load the model and some parameters provided for today:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> java.<span class="fu">io</span>.<span class="fu">File</span>
+<span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">io</span>.<span class="fu">_</span>
+
+<span class="kw">val</span> modelFile = <span class="kw">new</span> File(<span class="st">&quot;data/model2009-bfm.h5&quot;</span>)
+<span class="kw">val</span> model = MoMoIO.<span class="fu">read</span>(modelFile).<span class="fu">get</span>
+
+<span class="kw">val</span> targetParameters = RenderParameterIO.<span class="fu">read</span>(<span class="kw">new</span> File(<span class="st">&quot;data/day2/exampleParameters.rps&quot;</span>)).<span class="fu">get</span></code></pre></div>
+<p>The above parameters are the underlying ground-truth parameters. We will infer a distribution of parameters from a set of landmarks we observe. The observed landmarks are assumed to be noisy observations. So we will not aim to get a single best estimate.</p>
+<p>But first let us create a set of initial parameters for our algorithm to start with:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">parameters</span>.{MoMoInstance, RenderParameter}
+
+<span class="kw">val</span> modelInstance = MoMoInstance.<span class="fu">fromCoefficients</span>(model.<span class="fu">zeroCoefficients</span>, modelFile.<span class="fu">toURI</span>)
+<span class="kw">val</span> initialParameters = RenderParameter.<span class="fu">defaultSquare</span>.
+  <span class="fu">withMoMo</span>(modelInstance).
+  <span class="fu">forImageSize</span>(<span class="dv">512</span>, <span class="dv">512</span>)</code></pre></div>
+<p>Next, we visualize the images for the loaded and the initial parameters. For this we create a renderer, render an image for each set of parameters and then display the generated images in a GUI:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">face</span>.<span class="fu">MoMoRenderer</span>
+
+<span class="kw">val</span> renderer = <span class="fu">MoMoRenderer</span>(model)
+<span class="kw">val</span> target = renderer.<span class="fu">renderImage</span>(targetParameters)
+<span class="kw">val</span> image = renderer.<span class="fu">renderImage</span>(initialParameters)
+
+
+<span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">gui</span>.<span class="fu">ImagePanel</span>
+<span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">gui</span>.<span class="fu">GUIBlock</span>.<span class="fu">_</span>
+<span class="kw">val</span> imagePanel = <span class="fu">ImagePanel</span>(image)
+<span class="kw">val</span> targetPanel = <span class="fu">ImagePanel</span>(target)
+<span class="fu">shelf</span>(targetPanel,imagePanel).<span class="fu">displayIn</span>(<span class="st">&quot;Sampling&quot;</span>)</code></pre></div>
+<p>Next we have a look at landmarks.</p>
+<h3 id="generating-the-landmarks">Generating the landmarks</h3>
+<p>The model you have loaded has some predefined landmarks.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> allLandmarkNames = model.<span class="fu">landmarks</span>.<span class="fu">keys</span></code></pre></div>
+<p>We can print all names of the landmarks by:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">allLandmarkNames.<span class="fu">foreach</span>(lmName =&gt; <span class="fu">println</span>(lmName))</code></pre></div>
+<p>There are mainly two sets of landmarks. The first set of landmarks is known under the name <a href="https://link.springer.com/chapter/10.1007%2F978-1-4419-1788-1_29">Farkas</a>. We will use our internal set, the second set provided with the model. To select this subset of landmarks we can filter the names of the landmarks and keep those with at least one '.' in the name:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> landmarkNames = allLandmarkNames.<span class="fu">filter</span>(lmName =&gt; lmName.<span class="fu">contains</span>(<span class="st">&quot;.&quot;</span>)).<span class="fu">toSeq</span></code></pre></div>
+<p>Let us generate the location of the landmarks in the image. We use the renderer to get the 2d position in the image. Using the <code>LandmarksDrawer.drawLandmarks</code> function we can visualize the positions of the landmarks on top of an image. Finally we display the so obtained image in the UI:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">landmarks</span>.<span class="fu">LandmarksDrawer</span>
+<span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">color</span>.<span class="fu">RGBA</span>
+
+<span class="kw">val</span> landmarks = landmarkNames.<span class="fu">map</span>(tag =&gt; renderer.<span class="fu">renderLandmark</span>(tag,targetParameters).<span class="fu">get</span>)
+<span class="kw">val</span> targetLM = LandmarksDrawer.<span class="fu">drawLandmarks</span>(target,landmarks,<span class="fu">RGBA</span>(<span class="fl">1.0</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>),<span class="dv">5</span>)
+targetPanel.<span class="fu">updateImage</span>(targetLM)</code></pre></div>
+<h3 id="proposals-distribution">Proposals Distribution</h3>
+<p>From the two images we can see that we need to rotate and translate the model in order to match the target face. Hence we need to sample more than a single parameter. We will adapt the three rotation angles and a 2d translation. We use the <code>GaussianRotationProposal</code> class for generating rotations. The generated rotations have a specified rotation axis and an angle sampled from a zero-mean Gaussian distribution. Further we use a <code>GaussianTranslationProposal</code> which change the translation parallel to the camera, along the <em>x</em>-, and <em>y</em>-axis.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">face</span>.<span class="fu">proposals</span>.<span class="fu">_</span>
+<span class="kw">import</span> scalismo.<span class="fu">geometry</span>.{Vector, Vector3D}
+
+<span class="kw">val</span> rollProposal = <span class="fu">GaussianRotationProposal</span>(axis = Vector3D.<span class="fu">unitZ</span>, sdev = <span class="fl">0.1</span>)
+<span class="kw">val</span> yawProposal = <span class="fu">GaussianRotationProposal</span>(axis = Vector3D.<span class="fu">unitY</span>, sdev = <span class="fl">0.1</span>)
+<span class="kw">val</span> pitchProposal = <span class="fu">GaussianRotationProposal</span>(axis = Vector3D.<span class="fu">unitX</span>, sdev = <span class="fl">0.1</span>)
+
+<span class="kw">val</span> translationProposal = <span class="fu">GaussianTranslationProposal</span>(sdev = Vector(<span class="fl">10.0</span>,<span class="fl">10.0</span>))</code></pre></div>
+<p>To combine the proposals we can use the <code>MixtureProposal</code>. Note that we can specify the weights for the mixture explicitly, otherwise the weights are equally set to 1.0 and then normalized over the full mixture. Important is that we can build a mixture proposal only from the same type of proposals, here all proposals are of type <code>SymmetricProposalGenerator[Pose]</code>.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">proposals</span>.<span class="fu">MixtureProposal</span>
+<span class="kw">import</span> MixtureProposal.<span class="fu">implicits</span>.<span class="fu">_</span>
+
+<span class="kw">val</span> rotationProposal = <span class="fu">MixtureProposal</span>(rollProposal+yawProposal+pitchProposal)
+<span class="kw">val</span> poseProposal = <span class="fu">MixtureProposal</span>(<span class="fl">0.4</span>*:rotationProposal + <span class="fl">0.6</span>*:translationProposal)</code></pre></div>
+<p>When at the end of this tutorial block we also adapt the shape we need to generate samples of type <code>RenderParameter</code>. Also it is easier to develop code when as many blocks of our sampling application use <code>RenderParameter</code> as there type parameter.</p>
+<p>We can uplift a <code>SymmetricProposalGenerator[Pose]</code> to be <code>SymmetricProposalGenerator[RenderParameter]</code> using the function <code>toParameterProposal</code>. The function applies an implicit type conversion contained in the package <code>ParameterProposal.implicits</code>.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> ParameterProposals.<span class="fu">implicits</span>.<span class="fu">_</span>
+<span class="kw">val</span> poseParameterProposal = poseProposal.<span class="fu">toParameterProposal</span></code></pre></div>
+<h3 id="landmark-likelihood">Landmark Likelihood</h3>
+<p>We define now the landmark likelihood. We assume that the individual observed landmarks positions are independent given the model. Additionally we assume that the observations are affected by additive isotropic Gaussian noise. We can create an evaluator for this likelihood using the <code>LandmarkPointEvaluator.isotropicGaussian</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">face</span>.<span class="fu">evaluators</span>.<span class="fu">_</span>
+
+<span class="kw">val</span> landmarksEvaluator = LandmarkPointEvaluator.<span class="fu">isotropicGaussian</span>(
+  landmarks,    <span class="co">// observed target landmarks</span>
+  <span class="fl">4.0</span>,          <span class="co">// isotropic uncertainty of each landmark</span>
+  renderer      <span class="co">// renderer used to generate the landmark positions</span>
+)</code></pre></div>
+<h3 id="sampling-chain">Sampling Chain</h3>
+<p>Now we plug the parts together. First we create the chain using the new proposal and evaluator:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> poseAlgorithm = Metropolis[RenderParameter](poseParameterProposal,landmarksEvaluator)
+<span class="kw">val</span> chainIterator = poseAlgorithm.<span class="fu">iterator</span>(initialParameters)</code></pre></div>
+<p>Then we draw the samples from the chain by:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> landmarkBasedSamples = chainIterator.<span class="fu">take</span>(<span class="dv">5000</span>).<span class="fu">toIndexedSeq</span></code></pre></div>
+<p>We extract from the full set of parameters the roll angle only:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> rollAngles = landmarkBasedSamples.<span class="fu">map</span>(_.<span class="fu">pose</span>.<span class="fu">roll</span>)</code></pre></div>
+<p>We can visualize the histogram of the sampled roll angles together with the underlying ground truth value from the <code>targetParameters</code>:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> f = <span class="fu">Figure</span>(<span class="st">&quot;Roll angle - Histogram&quot;</span>)
+<span class="kw">val</span> p = f.<span class="fu">subplot</span>(<span class="dv">0</span>)
+p.<span class="fu">legend</span> = <span class="kw">true</span>
+
+<span class="co">// data to plot</span>
+p += <span class="fu">hist</span>(rollAngles,<span class="dv">100</span>,name = <span class="st">&quot;roll&quot;</span>)
+
+<span class="co">// ugly groundtruth hack</span>
+p += <span class="fu">plot</span>(
+  IndexedSeq.<span class="fu">fill</span>(<span class="dv">2</span>)(targetParameters.<span class="fu">pose</span>.<span class="fu">roll</span>),
+  <span class="fu">IndexedSeq</span>(<span class="fl">0.0</span>,-p.<span class="fu">ylim</span>.<span class="fu">_2</span>*<span class="fl">0.02</span>),
+  name = <span class="st">&quot;ground truth&quot;</span>
+)</code></pre></div>
+<h3 id="the-logger-for-visualization-during-sampling">The logger for Visualization during sampling</h3>
+<p>We can visualize the samples while they are produced. Like this we can get a feeling for the produced samples. For this we use the <code>ChainStateLogger[A]</code> class. As the name suggest, the current state of a chain is processed further. We can overwrite the function <code>logState(sample: A)</code>.</p>
+<p>We will write a logger that visualizes the face and the location of the landmarks. For this we first render the image with the current sample. Then we draw the target and the current landmark positions. At the end we update one of the images in the UI.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">loggers</span>.<span class="fu">ChainStateLogger</span>
+
+<span class="kw">val</span> lmLogger = <span class="kw">new</span> ChainStateLogger[RenderParameter] {
+
+  <span class="kw">override</span> <span class="kw">def</span> <span class="fu">logState</span>(sample: RenderParameter): Unit = {
+    <span class="kw">val</span> currentImage = renderer.<span class="fu">renderImage</span>(sample)
+    <span class="kw">val</span> imageWithTargetLMs = LandmarksDrawer.<span class="fu">drawLandmarks</span>(currentImage,landmarks,<span class="fu">RGBA</span>(<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="fl">0.33</span>),<span class="dv">8</span>)
+    <span class="kw">val</span> generatedLandmarks = landmarkNames.<span class="fu">map</span>(tag =&gt; renderer.<span class="fu">renderLandmark</span>(tag, sample).<span class="fu">get</span>)
+    <span class="kw">val</span> imageWithBothLMs = LandmarksDrawer.<span class="fu">drawLandmarks</span>(
+      imageWithTargetLMs,
+      generatedLandmarks,
+      <span class="fu">RGBA</span>(<span class="fl">1.0</span>, <span class="fl">0.0</span>, <span class="fl">0.0</span>),
+      <span class="dv">3</span>
+    )
+    imagePanel.<span class="fu">updateImage</span>(imageWithBothLMs)
+  }
+  
+}</code></pre></div>
+<p>To use the logger in a sampling run we attach it to the iterator using the function <code>loggedWith</code>. This function uses again an implicit conversion as for the function <code>toParameterProposal</code> introduced earlier. We need to import from <code>ChainStateLogger.implicits</code> to make the implicit conversion available. Additionally we used the method <code>subSampled(n: Int)</code>. This reduces the computational overhead as only every <em>n<sup>th</sup></em> sample triggers the logger.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">loggers</span>.<span class="fu">ChainStateLogger</span>.<span class="fu">implicits</span>.<span class="fu">_</span>
+
+<span class="kw">val</span> poseSamples = chainIterator.<span class="fu">take</span>(<span class="dv">5000</span>).
+  <span class="fu">loggedWith</span>( <span class="co">// attaches a logger</span>
+    lmLogger.<span class="fu">subSampled</span>(<span class="dv">100</span>) <span class="co">// the logger logs no longer all samples</span>
+  ).<span class="fu">toIndexedSeq</span>
+<span class="fu">println</span>(<span class="st">&quot;Done!&quot;</span>)</code></pre></div>
+<p>When you rerun the code, you should see that until the end the pose wobbles around. Additionally not all landmarks match closely the target landmarks. To correct for that we will next adapt the shape too.</p>
+<h3 id="sampling-the-shape-too">Sampling the shape too</h3>
+<p>For adapting the shape it is enough to change the shape parameters while sampling. For this we can add another term to our mixture distribution we use as proposal. The framework provides the proposal <code>GaussianMoMoShapeProposal</code>:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> shapeProposal = <span class="fu">GaussianMoMoShapeProposal</span>(<span class="fl">0.1</span>)</code></pre></div>
+<p>You can combine this proposals with the former pose proposals in a further mixture. Make sure that you uplift both proposals to <code>RenderParameter</code> proposals using the function <code>toParameterProposal</code>. Then run the sampling again. What can you see?</p>
+<p>While the landmarks match now better, the overall impression of the faces will be more unnatural, as we evaluate only the landmark likelihood. We do not incorporate yet our prior, the distribution of the parameters of the shape model.</p>
+<h3 id="adding-the-prior">Adding the prior</h3>
+<p>Following bayes rule we will evaluate the posterior up to the normalization by multiplying the likelihood with the prior. We can do this by first using the class <code>GaussianShapePrior</code> to define an evaluator for the prior. Then you can use the <code>ProductEvaluator</code> to combine the prior with the landmark evaluator which we already defined. As guidance you can use the following snippet.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">import</span> scalismo.<span class="fu">faces</span>.<span class="fu">sampling</span>.<span class="fu">face</span>.<span class="fu">evaluators</span>.<span class="fu">PriorEvaluators</span>.<span class="fu">GaussianShapePrior</span>
+
+<span class="kw">val</span> shapePrior = <span class="fu">GaussianShapePrior</span>(<span class="fl">0.0</span>,<span class="fl">1.0</span>)
+
+<span class="kw">import</span> scalismo.<span class="fu">sampling</span>.<span class="fu">evaluators</span>.<span class="fu">ProductEvaluator</span>
+<span class="kw">import</span> ProductEvaluator.<span class="fu">implicits</span>.<span class="fu">_</span>
+<span class="kw">val</span> productEvaluator = <span class="fu">ProductEvaluator</span>(landmarksEvaluator * shapePrior)</code></pre></div>
+<p>Change the sampling now to use the product as evaluator. The faces should now look more natural while the landmarks are well matched. However the shape is still not constrained very much. Can you confirm this result?</p>
+<p>This concludes the basic building blocks. Next we will introduce the challenge you work on the rest of the week. For the challenge you will start to incorporate also the image color. Further we provide you with information of more advanced topics. Using all the tools you should then be able to come-up with an algorithm for 3d reconstruction of a face from a single image.</p>
+</body>
+</html>
